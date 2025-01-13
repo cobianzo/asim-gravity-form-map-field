@@ -1,6 +1,5 @@
 {
 	"name": "coco/asim-gravity-form-map-field",
-	"version": "2.0.3",
 	"type": "wordpress-plugin",
 	"license": "GPL-2.0-or-later",
 	"description": "Experiments to add frontend interactivity to blocks",

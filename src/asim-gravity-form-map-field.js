@@ -42,7 +42,7 @@ window.centerMapAtInputCoordinates = (input, map) => {
  */
 window.addMarker = (position, map) => {
 	if (map.marker) {
-		map.marker.setMap(null); // Remove the previous marker.
+		map.marker.setMap(null); // Eliminar el marcador anterior.
 	}
 
 	map.marker = new window.google.maps.Marker({
@@ -66,43 +66,30 @@ window.addMarker = (position, map) => {
 window.locationButton = function (inputName) {
 	const mapSetup = window.asimMaps[inputName];
 
-	// Create a control to center the map on the user's current location
+	// Crear un control para centrar el mapa en la ubicación del usuario
 	const centerControlDiv = document.createElement('div');
 	const centerControlButton = document.createElement('button');
-	centerControlButton.innerHTML = `<img style="filter:invert(1);width:24px;" width="24" height="24" src="${window.asimLocationIcon}" />`;
+	centerControlButton.textContent = 'Location';
 	centerControlButton.classList.add('custom-map-control-button');
 	centerControlDiv.appendChild(centerControlButton);
 
-	// Optional styling for the button
+	// Estilo opcional para el botón
 	centerControlButton.style.margin = '10px';
 	centerControlButton.style.cursor = 'pointer';
 
 	window.google = window.google || null;
 	mapSetup.map.controls[window.google.maps.ControlPosition.TOP_LEFT].push(centerControlDiv);
 
-	// Add event to the button to center the map
+	// Agregar evento al botón para centrar el mapa
 	centerControlButton.addEventListener('click', (e) => {
 		e.preventDefault();
-
-		if (e.target.ownerDocument.activeElement.classList.contains('pac-target-input')) {
-			return;
-		}
-
 		const btn = e.currentTarget;
-		const currentText = btn.innerHTML;
+		const currentText = btn.textContent;
 		window.navigator = window.navigator || null;
 		if (window.navigator.geolocation) {
-			btn.innerHTML = 'Loading...';
-			window.calculateCurrentLocation = Math.floor(Date.now() / 1000);
+			btn.textContent = 'Loading...';
 			window.navigator.geolocation.getCurrentPosition(
 				(position) => {
-					btn.innerHTML = currentText;
-					if (window.cancelCalculateCurrentLocation === window.calculateCurrentLocation) {
-						window.calculateCurrentLocation = null;
-						return;
-					}
-					window.calculateCurrentLocation = null;
-
 					const userLocation = {
 						lat: position.coords.latitude,
 						lng: position.coords.longitude,
@@ -110,11 +97,12 @@ window.locationButton = function (inputName) {
 					mapSetup.map.setCenter(userLocation);
 					window.addMarker(userLocation, mapSetup.map);
 					mapSetup.inputElement.value = `${userLocation.lat},${userLocation.lng}`;
+					btn.textContent = currentText;
 				},
 				() => {
 					// eslint-disable-next-line
 					alert('Could not get the user location.');
-					btn.innerHTML = currentText;
+					btn.textContent = currentText;
 				}
 			);
 		} else {
@@ -122,81 +110,4 @@ window.locationButton = function (inputName) {
 			alert('The browser does not support geolocation.');
 		}
 	});
-};
-
-/**
- * Initializes the Google Places autocomplete feature on a map.
- * Creates a container and an input in the map and adds an autocomplete
- * that is centered on cities and shows the formatted address in the
- * input. When a place is selected, the map is centered on that place and
- * a marker is added. The input is updated with the formatted address.
- *
- * @param {Object}   map         google.maps.Map: The map to add the autocomplete to.
- * @param { string } placeholder
- * @return {Object} An object with the properties input, autocomplete and container.
- */
-window.initPlacesAutocomplete = function (map, placeholder = 'Search place') {
-	const searchContainer = document.createElement('div');
-	searchContainer.style.position = 'absolute';
-	searchContainer.style.top = '10px';
-	searchContainer.style.left = '50%';
-	searchContainer.style.transform = 'translateX(-50%)';
-	searchContainer.style.zIndex = '1000';
-	searchContainer.style.width = 'calc( 100% - 250px )';
-	searchContainer.style.maxWidth = '200px';
-
-	const input = document.createElement('input');
-	input.setAttribute('type', 'text');
-	input.setAttribute('placeholder', placeholder);
-	input.style.width = '100%';
-	input.style.padding = '12px';
-	input.style.borderRadius = '4px';
-	input.style.border = '1px solid #ccc';
-	input.style.boxShadow = '0 2px 6px rgba(0,0,0,0.3)';
-
-	searchContainer.appendChild(input);
-	map.getDiv().appendChild(searchContainer);
-
-	// Initialize the autocomplete
-	const autocomplete = new window.google.maps.places.Autocomplete(input, {
-		types: ['(cities)'],
-		fields: ['formatted_address', 'geometry', 'name'],
-	});
-
-	// Bind the autocomplete to the map
-	autocomplete.bindTo('bounds', map);
-
-	// Handle the place change event
-	autocomplete.addListener('place_changed', () => {
-		const place = autocomplete.getPlace();
-
-		if (!place.geometry || !place.geometry.location) {
-			// eslint-disable-next-line
-			console.log('Selected location not found');
-			return;
-		}
-
-		// Center the map
-		if (place.geometry.viewport) {
-			map.fitBounds(place.geometry.viewport);
-		} else {
-			map.setCenter(place.geometry.location);
-			map.setZoom(15);
-		}
-
-		// Use the existing addMarker function (so far we don't show the marker)
-		// window.addMarker(place.geometry.location, map);
-		if (window.calculateCurrentLocation) {
-			window.cancelCalculateCurrentLocation = window.calculateCurrentLocation;
-		}
-
-		// Update the input with the formatted address
-		input.value = place.formatted_address;
-	});
-
-	return {
-		input,
-		autocomplete,
-		container: searchContainer,
-	};
 };

@@ -6,6 +6,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+
 /**
  * Renders a map field for a Gravity Form.
  *
@@ -32,12 +33,16 @@ function asim_render_map_field( $instance, $form, $value ) {
 
 	$disabled_text = $is_form_editor ? 'disabled="disabled"' : '';
 
-	$field_type         = 'text';
+	$field_type         = $is_entry_detail || $is_form_editor ? 'text' : 'hidden';
+	$field_type         = 'text'; //todelete
 	$class_attribute    = $is_entry_detail || $is_form_editor ? '' : "class='gform_asim_map'";
 	$required_attribute = $instance->isRequired ? 'aria-required="true"' : '';
 	$invalid_attribute  = $instance->failed_validation ? 'aria-invalid="true"' : 'aria-invalid="false"';
 
-	// Exit if we are in the admin.
+
+
+
+	// Salir si estamos en el administrador.
 	$latlng = explode( ',', $value );
 
 	[$lat, $lng] = [ -34.397, 150.644 ]; // default
@@ -45,11 +50,12 @@ function asim_render_map_field( $instance, $form, $value ) {
 		[$lat, $lng] = $latlng;
 	}
 
+
 	ob_start();
 
 	if ( empty( $instance->google_maps_api_key ) ) {
 		if ( current_user_can( 'manage_options' ) ) {
-			echo '<div class="notice notice-error"><p>The map field requires a Google Maps API key. <a href="' . esc_url( admin_url( 'admin.php?page=gf_settings&subview=asim-gravity-form-map-field' ) ) . '">Configure</a></p></div>';
+			echo '<div class="notice notice-error"><p>El campo de mapas requiere una clave de API de Google Maps. <a href="' . esc_url( admin_url( 'admin.php?page=gf_settings&subview=asim-gravity-form-map-field' ) ) . '">Configurar</a></p></div>';
 		}
 		return ob_get_clean();
 	}
@@ -80,7 +86,6 @@ function asim_render_map_field( $instance, $form, $value ) {
 	<script>
 
 		window.asimMaps = window.asimMaps || {};
-		window.asimLocationIcon = <?php echo wp_json_encode( dirname( plugin_dir_url( __FILE__ ) ) . '/assets/location.svg' ); ?>;
 
 		asimMaps['<?php echo esc_js( $input_id ); ?>'] = {
 			map: null,
@@ -96,17 +101,10 @@ function asim_render_map_field( $instance, $form, $value ) {
 
 				// Inicializar el mapa.
 				const mapContainerEl = document.getElementById('map-container-<?php echo esc_js( $field_id ); ?>');
-				const map = new window.google.maps.Map(mapContainerEl, {
+				const map = new google.maps.Map(mapContainerEl, {
 					center: coordinates,
 					disableDefaultUI: true, // Desactiva la interfaz predeterminada
 					zoomControl: true,      // Activa los controles de zoom
-					mapTypeControl: true,
-					mapTypeIds: ['roadmap', 'terrain'],
-					mapTypeId: 'satellite',
-					mapTypeControlOptions: {
-						style: google.maps.MapTypeControlStyle.HORIZONTAL_BAR,
-						position: google.maps.ControlPosition.TOP_RIGHT,
-					},
 					zoom: 8,
 				});
 				asimMaps['<?php echo esc_js( $input_id ); ?>'].mapContainerEl = mapContainerEl
@@ -128,9 +126,6 @@ function asim_render_map_field( $instance, $form, $value ) {
 					inputElement.value = `${clickedCoordinates.lat()},${clickedCoordinates.lng()}`;
 					window.addMarker(clickedCoordinates, map);
 				});
-
-				// Add the search input for the map
-				window.initPlacesAutocomplete(map, '<?php esc_attr_e( 'Search location', 'asim-gravity-form-map-field' ); ?>');
 			}
 		}
 
@@ -138,11 +133,8 @@ function asim_render_map_field( $instance, $form, $value ) {
 		// Call to GoogleMapsAPI
 		window.loadGoogleMapsAPI = function() {
 			const script = document.createElement('script');
-			script.src = 'https://maps.googleapis.com/maps/api/js?key=<?php
-				echo esc_js( $instance->google_maps_api_key );
-			?>&libraries=places&loading=async&callback=initAllMaps';
+			script.src = 'https://maps.googleapis.com/maps/api/js?key=<?php echo esc_js( $instance->google_maps_api_key ); ?>&callback=initAllMaps';
 			script.async = true;
-			script.loading = 'async';
 			document.head.appendChild(script);
 		}
 
@@ -171,4 +163,3 @@ function asim_render_map_field( $instance, $form, $value ) {
 	<?php
 	return ob_get_clean();
 }
-
